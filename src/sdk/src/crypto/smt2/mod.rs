@@ -242,10 +242,11 @@ impl<const N: usize, F: FieldElement, H: FieldHasher<F, 2>> Path<N, F, H> {
             let sibling_node = self.path[i];
 
             let is_right = pos.bit((N - 1 - i) as u64);
-            //println!("is_right: {}", is_right);
             let (left, right) =
                 if is_right { (sibling_node, current_node) } else { (current_node, sibling_node) };
+            //println!("is_right: {}", is_right);
             //println!("left: {:?}, right: {:?}", left, right);
+            //println!("current_node: {:?}", current_node);
 
             current_node = self.hasher.hash([left, right]);
         }
