@@ -294,6 +294,7 @@ pub struct DaoVoteParams {
 pub struct DaoVoteParamsInput {
     /// Revealed nullifier
     pub nullifier: Nullifier,
+    pub root: pallas::Base,
     /// Vote commitment
     pub vote_commit: pallas::Point,
     /// Merkle root for the input's inclusion proof

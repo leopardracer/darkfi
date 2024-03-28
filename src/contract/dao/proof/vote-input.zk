@@ -1,4 +1,4 @@
-k = 13;
+k = 14;
 field = "pallas";
 
 constant "VoteInput" {
@@ -22,6 +22,8 @@ witness "VoteInput" {
     MerklePath path,
 
     Base signature_secret,
+    Base smt_root,
+    SparseMerklePath smt_path,
 }
 
 circuit "VoteInput" {
@@ -45,7 +47,12 @@ circuit "VoteInput" {
     # coin is active. The best fix would be the set non-membership,
     # but that possibly has scaling issues.
     nullifier = poseidon_hash(coin_secret, coin);
-    constrain_instance(nullifier);
+    #constrain_instance(nullifier);
+    ZERO = witness_base(0);
+    ONE = witness_base(1);
+    is_member = sparse_tree_is_member(smt_root, smt_path, ZERO, nullifier);
+    constrain_equal_base(is_member, ONE);
+    constrain_instance(smt_root);
 
     vcv = ec_mul_short(coin_value, VALUE_COMMIT_VALUE);
     vcr = ec_mul(value_blind, VALUE_COMMIT_RANDOM);

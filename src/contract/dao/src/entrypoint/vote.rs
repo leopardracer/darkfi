@@ -70,7 +70,8 @@ pub(crate) fn dao_vote_get_metadata(
         zk_public_inputs.push((
             DAO_CONTRACT_ZKAS_DAO_VOTE_INPUT_NS.to_string(),
             vec![
-                input.nullifier.inner(),
+                //input.nullifier.inner(),
+                input.root,
                 *value_coords.x(),
                 *value_coords.y(),
                 params.token_commit,
