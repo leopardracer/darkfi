@@ -1,4 +1,4 @@
-k = 13;
+k = 14;
 field = "pallas";
 
 constant "ProposeInput" {
@@ -22,6 +22,8 @@ witness "ProposeInput" {
     MerklePath path,
 
     Base signature_secret,
+    Base smt_root,
+    SparseMerklePath smt_path,
 }
 
 circuit "ProposeInput" {
@@ -43,7 +45,12 @@ circuit "ProposeInput" {
     # To avoid leaking timing & other info, we can just make a
     # money::transfer() call within the same tx.
     nullifier = poseidon_hash(coin_secret, coin);
-    constrain_instance(nullifier);
+    #constrain_instance(nullifier);
+    ZERO = witness_base(0);
+    ONE = witness_base(1);
+    is_member = sparse_tree_is_member(smt_root, smt_path, ZERO, nullifier);
+    constrain_equal_base(is_member, ONE);
+    constrain_instance(smt_root);
 
     # Pedersen commitment for coin's coin_value
     vcv = ec_mul_short(coin_value, VALUE_COMMIT_VALUE);

@@ -21,8 +21,12 @@ use darkfi_sdk::{
     bridgetree,
     bridgetree::Hashable,
     crypto::{
-        note::AeadEncryptedNote, pasta_prelude::*, pedersen::pedersen_commitment_u64,
-        poseidon_hash, Blind, FuncId, MerkleNode, PublicKey, ScalarBlind, SecretKey,
+        note::AeadEncryptedNote,
+        pasta_prelude::*,
+        pedersen::pedersen_commitment_u64,
+        poseidon_hash,
+        smt::{MemoryStorageFp, PoseidonFp, SmtMemoryFp, EMPTY_NODES_FP},
+        Blind, FuncId, MerkleNode, PublicKey, ScalarBlind, SecretKey,
     },
     pasta::pallas,
 };
@@ -80,6 +84,31 @@ impl DaoProposeCall {
             let note = input.note;
             let leaf_pos: u64 = input.leaf_position.into();
 
+            let public_key = PublicKey::from_secret(input.secret);
+            let coin = CoinAttributes {
+                public_key,
+                value: note.value,
+                token_id: note.token_id,
+                spend_hook: FuncId::none(),
+                user_data: pallas::Base::ZERO,
+                blind: note.coin_blind,
+            }
+            .to_coin();
+            let nullifier = poseidon_hash([input.secret.inner(), coin.inner()]);
+
+            // Just for testing purposes, make an empty SMT
+            // Normally we would load the actual tree from the Money DB
+            let hasher = PoseidonFp::new();
+            let store = MemoryStorageFp::new();
+            let mut smt = SmtMemoryFp::new(store, hasher.clone(), &EMPTY_NODES_FP);
+            //let leaves = vec![(nullifier, nullifier)];
+            //smt.insert_batch(leaves).unwrap();
+
+            let root = smt.root();
+            // TODO: prove_membership() is wrongly named. Rename to compute_path()
+            let path = smt.prove_membership(&nullifier);
+            assert!(path.verify(&root, &pallas::Base::ZERO, &nullifier));
+
             let prover_witnesses = vec![
                 Witness::Base(Value::known(input.secret.inner())),
                 Witness::Base(Value::known(pallas::Base::from(note.value))),
@@ -92,18 +121,10 @@ impl DaoProposeCall {
                 Witness::Uint32(Value::known(leaf_pos.try_into().unwrap())),
                 Witness::MerklePath(Value::known(input.merkle_path.clone().try_into().unwrap())),
                 Witness::Base(Value::known(input.signature_secret.inner())),
+                // SMT
+                Witness::Base(Value::known(root)),
+                Witness::SparseMerklePath(Value::known(path.path)),
             ];
-
-            let public_key = PublicKey::from_secret(input.secret);
-            let coin = CoinAttributes {
-                public_key,
-                value: note.value,
-                token_id: note.token_id,
-                spend_hook: FuncId::none(),
-                user_data: pallas::Base::ZERO,
-                blind: note.coin_blind,
-            }
-            .to_coin();
 
             // TODO: We need a generic ZkSet widget to avoid doing this all the time
 
@@ -121,8 +142,6 @@ impl DaoProposeCall {
                 current
             };
 
-            let nullifier: Nullifier = poseidon_hash([input.secret.inner(), coin.inner()]).into();
-
             let token_commit = poseidon_hash([note.token_id.inner(), gov_token_blind.inner()]);
             assert_eq!(self.dao.gov_token_id, note.token_id);
 
@@ -132,7 +151,8 @@ impl DaoProposeCall {
             let (sig_x, sig_y) = signature_public.xy();
 
             let public_inputs = vec![
-                nullifier.inner(),
+                //nullifier,
+                root,
                 *value_coords.x(),
                 *value_coords.y(),
                 token_commit,
@@ -144,11 +164,17 @@ impl DaoProposeCall {
             let circuit = ZkCircuit::new(prover_witnesses, burn_zkbin);
 
             let proving_key = &burn_pk;
-            let input_proof = Proof::create(proving_key, &[circuit], &public_inputs, &mut OsRng)?;
+            let input_proof =
+                Proof::create(proving_key, &[circuit.clone()], &public_inputs, &mut OsRng)?;
             proofs.push(input_proof);
 
-            let input =
-                DaoProposeParamsInput { nullifier, value_commit, merkle_root, signature_public };
+            let input = DaoProposeParamsInput {
+                nullifier: nullifier.into(),
+                root,
+                value_commit,
+                merkle_root,
+                signature_public,
+            };
             inputs.push(input);
         }
 
