@@ -144,13 +144,13 @@ bench-zk-from-json: contracts $(PROOFS_BIN)
 	rm -f src/contract/test-harness/*.bin
 	RUSTFLAGS="$(RUSTFLAGS)" $(CARGO) bench --target=$(RUST_TARGET) \
 		--bench zk_from_json --all-features --workspace \
-		-- --save-baseline master
+		-- --save-baseline daosmt
 
 bench: contracts $(PROOFS_BIN)
 	rm -f src/contract/test-harness/*.bin
 	RUSTFLAGS="$(RUSTFLAGS)" $(CARGO) bench --target=$(RUST_TARGET) \
 		--all-features --workspace \
-		-- --save-baseline master
+		-- --save-baseline daosmt
 
 coverage: contracts $(PROOFS_BIN)
 	RUSTFLAGS="$(RUSTFLAGS)" $(CARGO) llvm-cov --target=$(RUST_TARGET) \
