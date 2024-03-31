@@ -96,6 +96,8 @@ pub struct Env {
     pub objects: RefCell<Vec<Vec<u8>>>,
     /// Block height number runtime verifys against
     pub verifying_block_height: u64,
+    /// Transaction index within the current block
+    pub tx_idx: u32,
     /// Parent `Instance`
     pub instance: Option<Arc<Instance>>,
 }
@@ -151,6 +153,7 @@ impl Runtime {
         blockchain: BlockchainOverlayPtr,
         contract_id: ContractId,
         verifying_block_height: u64,
+        tx_idx: u32,
     ) -> Result<Self> {
         info!(target: "runtime::vm_runtime", "[WASM] Instantiating a new runtime");
         // This function will be called for each `Operator` encountered during
@@ -192,6 +195,7 @@ impl Runtime {
                 memory: None,
                 objects: RefCell::new(vec![]),
                 verifying_block_height,
+                tx_idx,
                 instance: None,
             },
         );

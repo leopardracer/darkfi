@@ -207,6 +207,7 @@ pub async fn verify_block(
     let public_key = verify_producer_transaction(
         overlay,
         block.header.height,
+        block.txs.len() as u32,
         block.txs.last().unwrap(),
         &mut tree,
     )
@@ -243,6 +244,7 @@ pub fn verify_producer_signature(block: &BlockInfo, public_key: &PublicKey) -> R
 pub async fn verify_producer_transaction(
     overlay: &BlockchainOverlayPtr,
     verifying_block_height: u64,
+    tx_idx: u32,
     tx: &Transaction,
     tree: &mut MerkleTree,
 ) -> Result<PublicKey> {
@@ -282,8 +284,13 @@ pub async fn verify_producer_transaction(
     debug!(target: "validator::verification::verify_producer_transaction", "Instantiating WASM runtime");
     let wasm = overlay.lock().unwrap().wasm_bincode.get(call.data.contract_id)?;
 
-    let mut runtime =
-        Runtime::new(&wasm, overlay.clone(), call.data.contract_id, verifying_block_height)?;
+    let mut runtime = Runtime::new(
+        &wasm,
+        overlay.clone(),
+        call.data.contract_id,
+        verifying_block_height,
+        tx_idx,
+    )?;
 
     debug!(target: "validator::verification::verify_producer_transaction", "Executing \"metadata\" call");
     let metadata = runtime.metadata(&payload)?;
@@ -373,6 +380,7 @@ pub async fn verify_producer_transaction(
 pub async fn verify_transaction(
     overlay: &BlockchainOverlayPtr,
     verifying_block_height: u64,
+    tx_idx: u32,
     tx: &Transaction,
     tree: &mut MerkleTree,
     verifying_keys: &mut HashMap<[u8; 32], HashMap<String, VerifyingKey>>,
@@ -444,8 +452,13 @@ pub async fn verify_transaction(
         debug!(target: "validator::verification::verify_transaction", "Instantiating WASM runtime");
         let wasm = overlay.lock().unwrap().wasm_bincode.get(call.data.contract_id)?;
 
-        let mut runtime =
-            Runtime::new(&wasm, overlay.clone(), call.data.contract_id, verifying_block_height)?;
+        let mut runtime = Runtime::new(
+            &wasm,
+            overlay.clone(),
+            call.data.contract_id,
+            verifying_block_height,
+            tx_idx,
+        )?;
 
         debug!(target: "validator::verification::verify_transaction", "Executing \"metadata\" call");
         let metadata = runtime.metadata(&payload)?;
@@ -518,6 +531,7 @@ pub async fn verify_transaction(
                 overlay.clone(),
                 deploy_cid,
                 verifying_block_height,
+                tx_idx,
             )?;
 
             deploy_runtime.deploy(&deploy_params.ix)?;
@@ -637,10 +651,18 @@ pub async fn verify_transactions(
     }
 
     // Iterate over transactions and attempt to verify them
-    for tx in txs {
+    for (tx_idx, tx) in txs.into_iter().enumerate() {
         overlay.lock().unwrap().checkpoint();
-        match verify_transaction(overlay, verifying_block_height, tx, tree, &mut vks, verify_fees)
-            .await
+        match verify_transaction(
+            overlay,
+            verifying_block_height,
+            tx_idx as u32,
+            tx,
+            tree,
+            &mut vks,
+            verify_fees,
+        )
+        .await
         {
             Ok(gas) => gas_used += gas,
             Err(e) => {

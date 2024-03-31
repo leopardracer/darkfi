@@ -35,6 +35,8 @@ fn token_mint() -> Result<()> {
 
         // Block height to verify against
         let current_block_height = 0;
+        // Transaction index
+        let current_tx_idx = 0;
 
         // Initialize harness
         let mut th = TestHarness::new(&HOLDERS, false).await?;
@@ -62,6 +64,7 @@ fn token_mint() -> Result<()> {
                 &token_auth_mint_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -81,6 +84,7 @@ fn token_mint() -> Result<()> {
                 &token_frz_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;

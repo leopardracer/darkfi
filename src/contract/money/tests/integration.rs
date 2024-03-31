@@ -50,6 +50,7 @@ fn money_integration() -> Result<()> {
         assert!(bob_coins[1].note.value == expected_reward(4));
 
         let current_block_height = 4;
+        let current_tx_idx = 0;
 
         // Alice transfers some tokens to Bob
         let (tx, (xfer_params, fee_params), _spent_soins) = th
@@ -71,6 +72,7 @@ fn money_integration() -> Result<()> {
                 &xfer_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;

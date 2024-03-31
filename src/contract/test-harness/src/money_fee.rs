@@ -160,10 +160,11 @@ impl TestHarness {
         tx: Transaction,
         params: &MoneyFeeParamsV1,
         block_height: u64,
+        tx_idx: u32,
     ) -> Result<Vec<OwnCoin>> {
         let wallet = self.holders.get_mut(holder).unwrap();
 
-        wallet.add_transaction("money::fee", tx, block_height, self.verify_fees).await?;
+        wallet.add_transaction("money::fee", block_height, tx_idx, tx, self.verify_fees).await?;
         wallet.money_merkle_tree.append(MerkleNode::from(params.output.coin.inner()));
 
         // Attempt to decrypt the output note to see if this is a coin for the holder
@@ -212,6 +213,7 @@ impl TestHarness {
         // and verification.
         let wallet = self.holders.get(holder).unwrap();
         let mut gas_used = FEE_CALL_GAS;
+        // This calculation may be inaccurate if the contract uses the tx_idx
         gas_used += wallet.validator.add_transactions(&[tx], block_height, false, false).await?;
 
         // Knowing the total gas, we can now find an OwnCoin of enough value

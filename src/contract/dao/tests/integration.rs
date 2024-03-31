@@ -82,6 +82,8 @@ fn integration_test() -> Result<()> {
 
         // Block height to verify against
         let current_block_height = 0;
+        // Transaction index
+        let current_tx_idx = 0;
 
         // DAO parameters
         let dao_keypair = th.holders.get(&Holder::Dao).unwrap().keypair;
@@ -113,6 +115,7 @@ fn integration_test() -> Result<()> {
                 &dao_mint_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -143,6 +146,7 @@ fn integration_test() -> Result<()> {
                 genesis_mint_tx.clone(),
                 &genesis_mint_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -182,6 +186,7 @@ fn integration_test() -> Result<()> {
                 &a_auth_token_mint_params,
                 &a_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -216,6 +221,7 @@ fn integration_test() -> Result<()> {
                 &b_auth_token_mint_params,
                 &b_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -250,6 +256,7 @@ fn integration_test() -> Result<()> {
                 &c_auth_token_mint_params,
                 &c_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -305,6 +312,7 @@ fn integration_test() -> Result<()> {
                 &propose_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -365,6 +373,7 @@ fn integration_test() -> Result<()> {
                 &alice_vote_params,
                 &alice_vote_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -376,6 +385,7 @@ fn integration_test() -> Result<()> {
                 &bob_vote_params,
                 &bob_vote_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -387,6 +397,7 @@ fn integration_test() -> Result<()> {
                 &charlie_vote_params,
                 &charlie_vote_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -490,6 +501,7 @@ fn integration_test() -> Result<()> {
                 &exec_params,
                 &exec_fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;

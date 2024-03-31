@@ -181,12 +181,15 @@ impl TestHarness {
         swap_params: &MoneyTransferParamsV1,
         fee_params: &Option<MoneyFeeParamsV1>,
         block_height: u64,
+        tx_idx: u32,
         append: bool,
     ) -> Result<Vec<OwnCoin>> {
         let wallet = self.holders.get_mut(holder).unwrap();
 
         // Execute the transaction
-        wallet.add_transaction("money::otc_swap", tx, block_height, self.verify_fees).await?;
+        wallet
+            .add_transaction("money::otc_swap", block_height, tx_idx, tx, self.verify_fees)
+            .await?;
 
         let mut found_owncoins = vec![];
 

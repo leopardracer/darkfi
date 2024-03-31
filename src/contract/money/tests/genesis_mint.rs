@@ -43,6 +43,8 @@ fn genesis_mint() -> Result<()> {
 
         // Block height to verify against
         let current_block_height = 0;
+        // Transaction index
+        let current_tx_idx = 0;
 
         // Initialize harness
         let mut th = TestHarness::new(&HOLDERS, false).await?;
@@ -62,6 +64,7 @@ fn genesis_mint() -> Result<()> {
                 genesis_mint_tx.clone(),
                 &genesis_mint_params,
                 current_block_height + 1,
+                current_tx_idx,
                 true,
             )
             .await
@@ -76,6 +79,7 @@ fn genesis_mint() -> Result<()> {
                 genesis_mint_tx.clone(),
                 &genesis_mint_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -98,6 +102,7 @@ fn genesis_mint() -> Result<()> {
                 genesis_mint_tx.clone(),
                 &genesis_mint_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;

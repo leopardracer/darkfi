@@ -121,12 +121,15 @@ impl TestHarness {
         call_params: &MoneyTransferParamsV1,
         fee_params: &Option<MoneyFeeParamsV1>,
         block_height: u64,
+        tx_idx: u32,
         append: bool,
     ) -> Result<Vec<OwnCoin>> {
         let wallet = self.holders.get_mut(holder).unwrap();
 
         // Execute the transaction
-        wallet.add_transaction("money::transfer", tx, block_height, self.verify_fees).await?;
+        wallet
+            .add_transaction("money::transfer", block_height, tx_idx, tx, self.verify_fees)
+            .await?;
 
         // Iterate over all inputs to mark any spent coins
         let mut inputs: Vec<Input> = call_params.inputs.to_vec();

@@ -54,6 +54,8 @@ fn mint_pay_swap() -> Result<()> {
 
         // Block height to verify against
         let current_block_height = 0;
+        // Transaction index
+        let current_tx_idx = 0;
 
         // Initialize harness
         let mut th = TestHarness::new(&HOLDERS, false).await?;
@@ -85,6 +87,7 @@ fn mint_pay_swap() -> Result<()> {
                 &mint_auth_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -119,6 +122,7 @@ fn mint_pay_swap() -> Result<()> {
                 &mint_auth_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -162,6 +166,7 @@ fn mint_pay_swap() -> Result<()> {
                 &transfer_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -211,6 +216,7 @@ fn mint_pay_swap() -> Result<()> {
                 &transfer_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -263,6 +269,7 @@ fn mint_pay_swap() -> Result<()> {
                 &otc_swap_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -316,6 +323,7 @@ fn mint_pay_swap() -> Result<()> {
                 &params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -361,6 +369,7 @@ fn mint_pay_swap() -> Result<()> {
                 &params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;
@@ -403,6 +412,7 @@ fn mint_pay_swap() -> Result<()> {
                 &otc_swap_params,
                 &fee_params,
                 current_block_height,
+                current_tx_idx,
                 true,
             )
             .await?;

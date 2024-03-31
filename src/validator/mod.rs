@@ -538,6 +538,7 @@ impl Validator {
         &self,
         tx: &Transaction,
         verifying_block_height: u64,
+        tx_idx: u32,
         write: bool,
     ) -> Result<()> {
         debug!(target: "validator::add_test_producer_transaction", "Instantiating BlockchainOverlay");
@@ -548,6 +549,7 @@ impl Validator {
         if let Err(e) = verify_producer_transaction(
             &overlay,
             verifying_block_height,
+            tx_idx,
             tx,
             &mut MerkleTree::new(1),
         )

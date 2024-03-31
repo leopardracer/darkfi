@@ -102,12 +102,13 @@ impl TestHarness {
         params: &DaoMintParams,
         fee_params: &Option<MoneyFeeParamsV1>,
         block_height: u64,
+        tx_idx: u32,
         append: bool,
     ) -> Result<Vec<OwnCoin>> {
         let wallet = self.holders.get_mut(holder).unwrap();
 
         // Execute the transaction
-        wallet.add_transaction("dao::mint", tx, block_height, self.verify_fees).await?;
+        wallet.add_transaction("dao::mint", block_height, tx_idx, tx, self.verify_fees).await?;
 
         if !append {
             return Ok(vec![])

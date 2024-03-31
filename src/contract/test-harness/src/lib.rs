@@ -189,12 +189,13 @@ impl Wallet {
     pub async fn add_transaction(
         &mut self,
         callname: &str,
-        tx: Transaction,
         block_height: u64,
+        tx_idx: u32,
+        tx: Transaction,
         verify_fees: bool,
     ) -> Result<()> {
         if self.bench_wasm {
-            benchmark_wasm_calls(callname, &self.validator, &tx, block_height);
+            benchmark_wasm_calls(callname, &self.validator, block_height, tx_idx, &tx);
         }
 
         self.validator.add_transactions(&[tx], block_height, true, verify_fees).await?;
@@ -281,16 +282,18 @@ impl TestHarness {
 fn benchmark_wasm_calls(
     callname: &str,
     validator: &Validator,
-    tx: &Transaction,
     block_height: u64,
+    tx_idx: u32,
+    tx: &Transaction,
 ) {
     let mut file = std::fs::OpenOptions::new().create(true).append(true).open("bench.csv").unwrap();
 
     for (idx, call) in tx.calls.iter().enumerate() {
         let overlay = BlockchainOverlay::new(&validator.blockchain).expect("blockchain overlay");
         let wasm = overlay.lock().unwrap().wasm_bincode.get(call.data.contract_id).unwrap();
-        let mut runtime = Runtime::new(&wasm, overlay.clone(), call.data.contract_id, block_height)
-            .expect("runtime");
+        let mut runtime =
+            Runtime::new(&wasm, overlay.clone(), call.data.contract_id, block_height, tx_idx)
+                .expect("runtime");
         let mut payload = vec![];
         payload.write_u32(idx as u32).unwrap(); // Call index
         tx.calls.encode(&mut payload).unwrap(); // Actual call data
