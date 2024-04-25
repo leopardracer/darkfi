@@ -286,21 +286,17 @@ Resource usage is calculated from `Message` and `Protocol` and stored in
 of resources used by each channel using the `p2p` method `channels()`,
 (this is easy since `Channel` has access to `p2p` via a weak ptr).
 
-Resources are arranged in a struct called `AbstractComputer` which
+Resources are arranged in a struct called `Resources` which
 contains resource usage indicators such as: CPU, Memory, hard disk,
 bandwidth, etc.
 
-The `ScoringSubsystem` monitors scoring actions such as `send_message`
-or `recv_message` (and other actions that make use of resources defined
-by the `AbstractComputer`) and increments the resource usage.
+The `ResourceMonitor` monitors scoring actions such as `send_message`
+or `recv_message` (and other actions that make use of `Resources`)
+and increments the resource usage.
 
-There is also a `Controller` that defines limits and decides on what action
-to take when a given limit has been breached (such as `channel.ban()`,
-`channel.throttle()` (TODO), or `choke()`, `snub()` etc (also TODO). It
-is important that the limits set by the `Controller` are configurable and
-can be injected in at runtime since `Message` and `Protocol` are dynamic,
-user-defined types.
+If `ResourceMonitor` returns an error (when a given limit has been
+breached, `Channel` will decide on what action to take (such as `channel.ban()`,
+`channel.throttle()` (TODO), or `choke()`, `snub()` etc (also TODO).
 
-TODO:
-* implement `ScoringSubsystem`, `AbstractComputer`, and `Controller`.
-
+`Message` and `Protocol` define a `ResourceLimit` which can be injected in
+at runtime since `Message` and `Protocol` are dynamic, user-defined types.
