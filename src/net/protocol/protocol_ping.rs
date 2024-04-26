@@ -29,6 +29,7 @@ use smol::Executor;
 use super::{
     super::{
         channel::ChannelPtr,
+        economy::{Resource, ResourceLimit},
         message::{PingMessage, PongMessage},
         message_subscriber::MessageSubscription,
         p2p::P2pPtr,
@@ -190,5 +191,11 @@ impl ProtocolBase for ProtocolPing {
 
     fn name(&self) -> &'static str {
         PROTO_NAME
+    }
+}
+
+impl ResourceLimit for ProtocolPing {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
     }
 }

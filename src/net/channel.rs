@@ -37,6 +37,7 @@ use url::Url;
 
 use super::{
     dnet::{self, dnetev, DnetEvent},
+    economy::ResourceMonitor,
     hosts::HostColor,
     message,
     message::{Packet, VersionMessage},
@@ -91,6 +92,8 @@ pub struct Channel {
     version: Mutex<Option<Arc<VersionMessage>>>,
     /// Channel debug info
     pub info: ChannelInfo,
+    /// TODO
+    monitor: ResourceMonitor,
 }
 
 impl Channel {
@@ -114,6 +117,8 @@ impl Channel {
         let start_time = UNIX_EPOCH.elapsed().unwrap().as_secs();
         let info = ChannelInfo::new(resolve_addr, connect_addr.clone(), start_time);
 
+        let monitor = ResourceMonitor::new();
+
         Arc::new(Self {
             reader,
             writer,
@@ -124,6 +129,7 @@ impl Channel {
             session,
             version,
             info,
+            monitor,
         })
     }
 

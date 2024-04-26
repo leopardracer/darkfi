@@ -23,7 +23,7 @@ use std::{collections::HashMap, sync::Arc};
 
 // TODO: Expand or modify these resources needed.
 #[derive(Eq, Hash, PartialEq)]
-enum Resources {
+pub enum Resource {
     Memory,
     Cpu,
     Harddisk,
@@ -39,11 +39,11 @@ pub type ResourceLimitPtr = Arc<dyn ResourceLimit + Send + Sync>;
 // pub trait Message: 'static + Send + Sync + Encodable + Decodable + ResourceLimit { ... }
 #[async_trait]
 pub trait ResourceLimit {
-    fn limit(&self) -> Vec<(Resources, u32)>;
+    fn limit(&self) -> Vec<(Resource, u32)>;
 }
 
 // `ResourceMonitor` monitors activity and increments the limit,
-// checking whether `usage > dyn resource_limit`
+// checking whether `usage_tally > dyn resource_limit`
 //
 // Owned by Channel.
 //
@@ -53,16 +53,16 @@ pub trait ResourceLimit {
 //
 // Returning an error from `increment()` will trigger actions in Channel
 // such as `ban()`.
-struct ResourceMonitor {
-    tally: Mutex<HashMap<Resources, u32>>,
+pub(in crate::net) struct ResourceMonitor {
+    tally: Mutex<HashMap<Resource, u32>>,
 }
 
 impl ResourceMonitor {
-    fn new(&self) -> Self {
+    pub(in crate::net) fn new() -> Self {
         Self { tally: Mutex::new(HashMap::new()) }
     }
 
-    async fn increment(&self, resource: Resources, score: u32, limit: u32) -> Result<()> {
+    async fn increment(&self, resource: Resource, score: u32, limit: u32) -> Result<()> {
         let mut tally = self.tally.lock().await;
         let entry = tally.get_mut(&resource).unwrap();
         *entry += score;

@@ -27,6 +27,7 @@ use smol::Executor;
 
 use super::super::{
     channel::ChannelPtr,
+    economy::{Resource, ResourceLimit},
     message::{VerackMessage, VersionMessage},
     message_subscriber::MessageSubscription,
     settings::SettingsPtr,
@@ -196,5 +197,11 @@ impl ProtocolVersion {
             "END => address={}", self.channel.address(),
         );
         Ok(())
+    }
+}
+
+impl ResourceLimit for ProtocolVersion {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
     }
 }

@@ -24,12 +24,13 @@ use log::trace;
 use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use url::Url;
 
+use super::economy::{Resource, ResourceLimit};
 use crate::{Error, Result};
 
 const MAGIC_BYTES: [u8; 4] = [0xd9, 0xef, 0xb6, 0x7d];
 
 /// Generic message template.
-pub trait Message: 'static + Send + Sync + Encodable + Decodable {
+pub trait Message: 'static + Send + Sync + Encodable + Decodable + ResourceLimit {
     const NAME: &'static str;
 }
 
@@ -49,12 +50,24 @@ pub struct PingMessage {
 }
 impl_p2p_message!(PingMessage, "ping");
 
+impl ResourceLimit for PingMessage {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
+    }
+}
+
 /// Inbound keepalive message.
 #[derive(Debug, Copy, Clone, SerialEncodable, SerialDecodable)]
 pub struct PongMessage {
     pub nonce: u16,
 }
 impl_p2p_message!(PongMessage, "pong");
+
+impl ResourceLimit for PongMessage {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
+    }
+}
 
 /// Requests address of outbound connecction.
 #[derive(Debug, Clone, SerialEncodable, SerialDecodable)]
@@ -69,6 +82,12 @@ pub struct GetAddrsMessage {
 }
 impl_p2p_message!(GetAddrsMessage, "getaddr");
 
+impl ResourceLimit for GetAddrsMessage {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
+    }
+}
+
 /// Sends address information to inbound connection.
 #[derive(Debug, Clone, SerialEncodable, SerialDecodable)]
 pub struct AddrsMessage {
@@ -76,6 +95,12 @@ pub struct AddrsMessage {
 }
 
 impl_p2p_message!(AddrsMessage, "addr");
+
+impl ResourceLimit for AddrsMessage {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
+    }
+}
 
 /// Requests version information of outbound connection.
 #[derive(Debug, Clone, SerialEncodable, SerialDecodable)]
@@ -101,6 +126,12 @@ pub struct VersionMessage {
 }
 impl_p2p_message!(VersionMessage, "version");
 
+impl ResourceLimit for VersionMessage {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
+    }
+}
+
 /// Sends version information to inbound connection.
 /// Response to `VersionMessage`.
 #[derive(Debug, Clone, SerialEncodable, SerialDecodable)]
@@ -109,6 +140,12 @@ pub struct VerackMessage {
     pub app_version: semver::Version,
 }
 impl_p2p_message!(VerackMessage, "verack");
+
+impl ResourceLimit for VerackMessage {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
+    }
+}
 
 /// Packets are the base type read from the network.
 /// Converted to messages and passed to event loop.

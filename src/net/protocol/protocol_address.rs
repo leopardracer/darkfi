@@ -25,6 +25,7 @@ use smol::Executor;
 use super::{
     super::{
         channel::ChannelPtr,
+        economy::{Resource, ResourceLimit},
         hosts::{HostColor, HostsPtr},
         message::{AddrsMessage, GetAddrsMessage},
         message_subscriber::MessageSubscription,
@@ -311,5 +312,11 @@ impl ProtocolBase for ProtocolAddress {
     }
     fn name(&self) -> &'static str {
         PROTO_NAME
+    }
+}
+
+impl ResourceLimit for ProtocolAddress {
+    fn limit(&self) -> Vec<(Resource, u32)> {
+        vec![]
     }
 }

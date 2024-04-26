@@ -123,3 +123,5 @@ pub use settings::Settings;
 /// and then call `p2p.dnet_sub()` to start receiving events.
 #[macro_use]
 pub mod dnet;
+
+pub mod economy;
