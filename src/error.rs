@@ -166,6 +166,9 @@ pub enum Error {
     #[error("Error decoding packet: {0}")]
     DecodePacket(String),
 
+    #[error("Packet exceeds accepted size limit")]
+    PacketOutOfBounds,
+
     #[error("Socks proxy error: {0}")]
     SocksError(String),
 

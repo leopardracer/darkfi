@@ -300,6 +300,7 @@ impl MessageSubsystem {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::net::economy::{Resource, ResourceLimit};
     use darkfi_serial::{serialize, SerialDecodable, SerialEncodable};
 
     #[test]
@@ -307,6 +308,12 @@ mod tests {
         #[derive(SerialEncodable, SerialDecodable)]
         struct MyVersionMessage(pub u32);
         crate::impl_p2p_message!(MyVersionMessage, "verver");
+
+        impl ResourceLimit for MyVersionMessage {
+            fn limit(&self) -> Vec<(Resource, u32)> {
+                vec![]
+            }
+        }
 
         smol::block_on(async {
             let subsystem = MessageSubsystem::new();

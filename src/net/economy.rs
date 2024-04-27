@@ -21,6 +21,13 @@ use async_trait::async_trait;
 use smol::lock::Mutex;
 use std::{collections::HashMap, sync::Arc};
 
+// TODO: enforce limits on internal type Messages and Protocols, by
+// incrementing the tally when the message/ protocol does stuff (like
+// send_.. recv_..), and monitoring that it does not exceed a given limit.
+
+// Arbitrary fixed size for packet length.
+pub(in crate::net) const PACKET_LIMIT_LEN: u64 = 10000;
+
 // TODO: Expand or modify these resources needed.
 #[derive(Eq, Hash, PartialEq)]
 pub enum Resource {

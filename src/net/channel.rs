@@ -287,6 +287,8 @@ impl Channel {
             let packet = match message::read_packet(reader).await {
                 Ok(packet) => packet,
                 Err(err) => {
+                    // TODO: is out_of_bounds error
+                    // if Self::is_oob_error(&err) {
                     if Self::is_eof_error(&err) {
                         info!(
                             target: "net::channel::main_receive_loop()",

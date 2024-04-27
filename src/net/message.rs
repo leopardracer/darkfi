@@ -24,7 +24,7 @@ use log::trace;
 use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use url::Url;
 
-use super::economy::{Resource, ResourceLimit};
+use super::economy::{Resource, ResourceLimit, PACKET_LIMIT_LEN};
 use crate::{Error, Result};
 
 const MAGIC_BYTES: [u8; 4] = [0xd9, 0xef, 0xb6, 0x7d];
@@ -175,6 +175,10 @@ pub async fn read_packet<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) ->
 
     // First deserialize the command, i.e. the type of the message.
     let cmd_len = VarInt::decode_async(stream).await?.0;
+    if cmd_len > PACKET_LIMIT_LEN {
+        return Err(Error::PacketOutOfBounds)
+    }
+
     let mut cmd_stream = stream.take(cmd_len);
     let mut cmd_str = Vec::new();
     cmd_str.try_reserve(cmd_len as usize)?;
@@ -186,6 +190,10 @@ pub async fn read_packet<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) ->
 
     // Then deserialize the message-dependent payload (see: message types)
     let msg_len = VarInt::decode_async(stream).await?.0;
+    if msg_len > PACKET_LIMIT_LEN {
+        return Err(Error::PacketOutOfBounds)
+    }
+
     let mut msg_stream = stream.take(msg_len);
     let mut payload = Vec::new();
     payload.try_reserve(msg_len as usize)?;
