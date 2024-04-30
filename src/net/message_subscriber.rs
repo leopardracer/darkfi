@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{any::Any, collections::HashMap, io::Cursor, sync::Arc, time::Duration};
+use std::{any::Any, collections::HashMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use futures::stream::{FuturesUnordered, StreamExt};
@@ -25,7 +25,11 @@ use rand::{rngs::OsRng, Rng};
 use smol::lock::Mutex;
 
 use super::message::Message;
-use crate::{system::timeout::timeout, Error, Result};
+use crate::{
+    net::{transport::PtStream, ChannelPtr},
+    system::timeout::timeout,
+    Error, Result,
+};
 
 /// 64-bit identifier for message subscription.
 pub type MessageSubscriptionId = u64;
@@ -177,7 +181,11 @@ impl<M: Message> MessageSubscription<M> {
 /// Generic interface for the message dispatcher.
 #[async_trait]
 trait MessageDispatcherInterface: Send + Sync {
-    async fn trigger(&self, payload: &[u8]);
+    async fn trigger(
+        &self,
+        stream: &mut smol::io::ReadHalf<Box<dyn PtStream + 'static>>,
+        channel: ChannelPtr,
+    );
 
     async fn trigger_error(&self, err: Error);
 
@@ -189,12 +197,17 @@ trait MessageDispatcherInterface: Send + Sync {
 impl<M: Message> MessageDispatcherInterface for MessageDispatcher<M> {
     /// Internal function to deserialize data into a message type
     /// and dispatch it across subscriber channels.
-    async fn trigger(&self, payload: &[u8]) {
+    async fn trigger(
+        &self,
+        stream: &mut smol::io::ReadHalf<Box<dyn PtStream + 'static>>,
+        _channel: ChannelPtr,
+    ) {
         // Deserialize data into type, send down the pipes.
-        let cursor = Cursor::new(payload);
-        match M::decode(cursor) {
+        match M::decode_async(stream).await {
             Ok(message) => {
+                let _limit = message.limit();
                 let message = Ok(Arc::new(message));
+                // TODO: do msg bounds checking
                 self._trigger_all(message).await
             }
 
@@ -265,7 +278,12 @@ impl MessageSubsystem {
 
     /// Transmits a payload to a dispatcher.
     /// Returns an error if the payload fails to transmit.
-    pub async fn notify(&self, command: &str, payload: &[u8]) -> Result<()> {
+    pub async fn notify(
+        &self,
+        command: &str,
+        reader: &mut smol::io::ReadHalf<Box<dyn PtStream + 'static>>,
+        channel: ChannelPtr,
+    ) -> Result<()> {
         let Some(dispatcher) = self.dispatchers.lock().await.get(command).cloned() else {
             warn!(
                 target: "net::message_subscriber::notify",
@@ -275,7 +293,7 @@ impl MessageSubsystem {
             return Err(Error::MissingDispatcher)
         };
 
-        dispatcher.trigger(payload).await;
+        dispatcher.trigger(reader, channel).await;
         Ok(())
     }
 

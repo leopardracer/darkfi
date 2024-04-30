@@ -30,7 +30,9 @@ use crate::{Error, Result};
 const MAGIC_BYTES: [u8; 4] = [0xd9, 0xef, 0xb6, 0x7d];
 
 /// Generic message template.
-pub trait Message: 'static + Send + Sync + Encodable + Decodable + ResourceLimit {
+pub trait Message:
+    'static + Send + Sync + Encodable + Decodable + AsyncDecodable + AsyncEncodable + ResourceLimit
+{
     const NAME: &'static str;
 }
 
@@ -160,7 +162,7 @@ pub struct Packet {
 /// We start by extracting the packet length from the stream, then allocate
 /// the precise buffer for this length using stream.take(). This provides
 /// a basic DDOS protection.
-pub async fn read_packet<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) -> Result<Packet> {
+pub async fn read_command<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) -> Result<String> {
     // Packets should have a 4 byte header of magic digits.
     // This is used for network debugging.
     let mut magic = [0u8; 4];
@@ -188,25 +190,10 @@ pub async fn read_packet<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) ->
     }
     let command = String::from_utf8(cmd_str)?;
 
-    // Then deserialize the message-dependent payload (see: message types)
-    let msg_len = VarInt::decode_async(stream).await?.0;
-    if msg_len > PACKET_LIMIT_LEN {
-        return Err(Error::PacketOutOfBounds)
-    }
-
-    let mut msg_stream = stream.take(msg_len);
-    let mut payload = Vec::new();
-    payload.try_reserve(msg_len as usize)?;
-
-    for _ in 0..msg_len {
-        payload.push(AsyncDecodable::decode_async(&mut msg_stream).await?);
-    }
-
-    trace!(target: "net::message", "Read payload {} bytes", payload.len());
-
-    Ok(Packet { command, payload })
+    Ok(command)
 }
 
+// TODO: modify .send_packet() so it calls .encode_async() on Message directly
 /// Sends an outbound packet by writing data to the given async stream.
 /// Returns the total written bytes.
 pub async fn send_packet<W: AsyncWrite + Unpin + Send + Sized>(

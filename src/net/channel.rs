@@ -93,7 +93,7 @@ pub struct Channel {
     /// Channel debug info
     pub info: ChannelInfo,
     /// TODO
-    monitor: ResourceMonitor,
+    _monitor: ResourceMonitor,
 }
 
 impl Channel {
@@ -117,7 +117,7 @@ impl Channel {
         let start_time = UNIX_EPOCH.elapsed().unwrap().as_secs();
         let info = ChannelInfo::new(resolve_addr, connect_addr.clone(), start_time);
 
-        let monitor = ResourceMonitor::new();
+        let _monitor = ResourceMonitor::new();
 
         Arc::new(Self {
             reader,
@@ -129,7 +129,7 @@ impl Channel {
             session,
             version,
             info,
-            monitor,
+            _monitor,
         })
     }
 
@@ -284,8 +284,8 @@ impl Channel {
 
         // Run loop
         loop {
-            let packet = match message::read_packet(reader).await {
-                Ok(packet) => packet,
+            let command = match message::read_command(reader).await {
+                Ok(command) => command,
                 Err(err) => {
                     // TODO: is out_of_bounds error
                     // if Self::is_oob_error(&err) {
@@ -316,12 +316,14 @@ impl Channel {
 
             dnetev!(self, RecvMessage, {
                 chan: self.info.clone(),
-                cmd: packet.command.clone(),
+                cmd: command.clone(),
                 time: NanoTimestamp::current_time(),
             });
 
             // Send result to our subscribers
-            match self.message_subsystem.notify(&packet.command, &packet.payload).await {
+            // TODO: we still need to call peek() and read the size of the message/ constrain
+            // it before deserializing.
+            match self.message_subsystem.notify(&command, reader, self.clone()).await {
                 Ok(()) => {}
                 // If we're getting messages without dispatchers, it's spam.
                 Err(Error::MissingDispatcher) => {

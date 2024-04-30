@@ -16,7 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use crate::{Error, Result};
+use crate::{net::Message, Result};
 use async_trait::async_trait;
 use smol::lock::Mutex;
 use std::{collections::HashMap, sync::Arc};
@@ -24,11 +24,21 @@ use std::{collections::HashMap, sync::Arc};
 // TODO: enforce limits on internal type Messages and Protocols, by
 // incrementing the tally when the message/ protocol does stuff (like
 // send_.. recv_..), and monitoring that it does not exceed a given limit.
+// Messages get summed according to e.g. GetAddr(20) = some_base_fee * 20
+// Protocols have additional scoring capabiliities so if there is some special behavior (i.e.
+// another code branch is opened), it needs to have the capacity to increment the tally.
 
 // Arbitrary fixed size for packet length.
 pub(in crate::net) const PACKET_LIMIT_LEN: u64 = 10000;
 
-// TODO: Expand or modify these resources needed.
+//#[derive(Eq, Hash, PartialEq)]
+pub enum Action<M: Message> {
+    ReadPacket(u16),
+    SendPacket(u16),
+    RecvMessage(String, M),
+    SendMessage(String, M),
+}
+
 #[derive(Eq, Hash, PartialEq)]
 pub enum Resource {
     Memory,
@@ -61,16 +71,16 @@ pub trait ResourceLimit {
 // Returning an error from `increment()` will trigger actions in Channel
 // such as `ban()`.
 pub(in crate::net) struct ResourceMonitor {
-    tally: Mutex<HashMap<Resource, u32>>,
+    _tally: Mutex<HashMap<Resource, u32>>,
 }
 
 impl ResourceMonitor {
     pub(in crate::net) fn new() -> Self {
-        Self { tally: Mutex::new(HashMap::new()) }
+        Self { _tally: Mutex::new(HashMap::new()) }
     }
 
-    async fn increment(&self, resource: Resource, score: u32, limit: u32) -> Result<()> {
-        let mut tally = self.tally.lock().await;
+    async fn _increment(&self, resource: Resource, score: u32, limit: u32) -> Result<()> {
+        let mut tally = self._tally.lock().await;
         let entry = tally.get_mut(&resource).unwrap();
         *entry += score;
         if *entry > limit {
