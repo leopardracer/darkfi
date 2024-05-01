@@ -323,7 +323,7 @@ impl Channel {
             // Send result to our subscribers
             // TODO: we still need to call peek() and read the size of the message/ constrain
             // it before deserializing.
-            match self.message_subsystem.notify(&command, reader, self.clone()).await {
+            match self.message_subsystem.notify(&command, reader).await {
                 Ok(()) => {}
                 // If we're getting messages without dispatchers, it's spam.
                 Err(Error::MissingDispatcher) => {

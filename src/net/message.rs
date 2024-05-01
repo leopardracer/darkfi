@@ -157,6 +157,8 @@ pub struct Packet {
     pub payload: Vec<u8>,
 }
 
+/// TODO: FIXME (doc)
+///
 /// Reads and decodes an inbound payload from the given async stream.
 /// Returns decoded [`Packet`].
 /// We start by extracting the packet length from the stream, then allocate
