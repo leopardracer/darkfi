@@ -25,7 +25,7 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use darkfi_serial::{async_trait, serialize, SerialDecodable, SerialEncodable};
+use darkfi_serial::{async_trait, SerialDecodable, SerialEncodable};
 use log::{debug, error, info};
 use rand::{rngs::OsRng, Rng};
 use smol::{
@@ -40,7 +40,7 @@ use super::{
     economy::ResourceMonitor,
     hosts::HostColor,
     message,
-    message::{Packet, VersionMessage},
+    message::VersionMessage,
     message_subscriber::{MessageSubscription, MessageSubsystem},
     p2p::P2pPtr,
     session::{Session, SessionBitFlag, SessionWeakPtr, SESSION_ALL, SESSION_REFINE},
@@ -225,16 +225,14 @@ impl Channel {
     /// network) and copies the payload into it. Then we send the packet
     /// over the network stream.
     async fn send_message<M: message::Message>(&self, message: &M) -> Result<()> {
-        let packet = Packet { command: M::NAME.to_string(), payload: serialize(message) };
-
         dnetev!(self, SendMessage, {
             chan: self.info.clone(),
-            cmd: packet.command.clone(),
+            cmd: M::NAME.to_string(),
             time: NanoTimestamp::current_time(),
         });
 
         let stream = &mut *self.writer.lock().await;
-        let _ = message::send_packet(stream, packet).await?;
+        let _ = message::send_packet2(stream, message).await?;
 
         Ok(())
     }

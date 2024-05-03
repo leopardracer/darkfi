@@ -17,22 +17,19 @@
  */
 
 use darkfi_serial::{
-    async_trait, AsyncDecodable, AsyncEncodable, Decodable, Encodable, SerialDecodable,
-    SerialEncodable, VarInt,
+    async_trait, serialize_async, AsyncDecodable, AsyncEncodable, SerialDecodable, SerialEncodable,
 };
 use log::trace;
 use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use url::Url;
 
-use super::economy::{Resource, ResourceLimit, PACKET_LIMIT_LEN};
+use super::economy::{Resource, ResourceLimit};
 use crate::{Error, Result};
 
 const MAGIC_BYTES: [u8; 4] = [0xd9, 0xef, 0xb6, 0x7d];
 
 /// Generic message template.
-pub trait Message:
-    'static + Send + Sync + Encodable + Decodable + AsyncDecodable + AsyncEncodable + ResourceLimit
-{
+pub trait Message: 'static + Send + Sync + AsyncDecodable + AsyncEncodable + ResourceLimit {
     const NAME: &'static str;
 }
 
@@ -177,22 +174,54 @@ pub async fn read_command<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) -
         return Err(Error::MalformedPacket)
     }
 
+    let command = String::decode_async(stream).await?;
+
+    // TODO: reimplement bounds checking
     // First deserialize the command, i.e. the type of the message.
-    let cmd_len = VarInt::decode_async(stream).await?.0;
-    if cmd_len > PACKET_LIMIT_LEN {
-        return Err(Error::PacketOutOfBounds)
-    }
+    //let cmd_len = VarInt::decode_async(stream).await?.0;
+    //if cmd_len > PACKET_LIMIT_LEN {
+    //    return Err(Error::PacketOutOfBounds)
+    //}
 
-    let mut cmd_stream = stream.take(cmd_len);
-    let mut cmd_str = Vec::new();
-    cmd_str.try_reserve(cmd_len as usize)?;
+    //let mut cmd_stream = stream.take(cmd_len);
+    //let mut cmd_str: Vec<u8> = Vec::new();
+    //cmd_str.try_reserve(cmd_len as usize)?;
 
-    for _ in 0..cmd_len {
-        cmd_str.push(AsyncDecodable::decode_async(&mut cmd_stream).await?);
-    }
-    let command = String::from_utf8(cmd_str)?;
+    //for _ in 0..cmd_len {
+    //    cmd_str.push(AsyncDecodable::decode_async(&mut cmd_stream).await?);
+    //}
+    //let command = String::from_utf8(cmd_str)?;
 
     Ok(command)
+}
+
+/// TODO: FIXME (doc)
+///
+/// Sends an outbound packet by writing data to the given async stream.
+/// Returns the total written bytes.
+pub async fn send_packet2<W: AsyncWrite + Unpin + Send + Sized, M: Message>(
+    stream: &mut W,
+    message: &M,
+) -> Result<usize> {
+    // TODO: reimplement assert
+    //assert!(!packet.command.is_empty());
+    assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
+
+    let mut written: usize = 0;
+
+    trace!(target: "net::message", "Sending magic...");
+    written += MAGIC_BYTES.encode_async(stream).await?;
+    trace!(target: "net::message", "Sent magic");
+
+    written += M::NAME.to_string().encode_async(stream).await?;
+    trace!(target: "net::message", "Sent command: {}", M::NAME.to_string());
+
+    written += message.encode_async(stream).await?;
+    trace!(target: "net::message", "Sent payload {} bytes", serialize_async(message).await.len() as u64);
+
+    stream.flush().await?;
+
+    Ok(written)
 }
 
 // TODO: modify .send_packet() so it calls .encode_async() on Message directly

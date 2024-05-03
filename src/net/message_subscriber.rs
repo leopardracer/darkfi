@@ -16,14 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use darkfi_serial::{AsyncDecodable, VarInt};
 use std::{any::Any, collections::HashMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
 use futures::stream::{FuturesUnordered, StreamExt};
 use log::{debug, error, warn};
 use rand::{rngs::OsRng, Rng};
-use smol::{io::AsyncReadExt, lock::Mutex};
+use smol::lock::Mutex;
 
 use super::message::Message;
 use crate::{net::transport::PtStream, system::timeout::timeout, Error, Result};
@@ -191,13 +190,9 @@ impl<M: Message> MessageDispatcherInterface for MessageDispatcher<M> {
     /// Internal function to deserialize data into a message type
     /// and dispatch it across subscriber channels.
     async fn trigger(&self, stream: &mut smol::io::ReadHalf<Box<dyn PtStream + 'static>>) {
-        let msg_len = VarInt::decode_async(stream).await.unwrap().0;
-        let mut msg_stream = stream.take(msg_len);
-
         // TODO: do msg bounds checking
-
         // Deserialize stream into type, send down the pipes.
-        match M::decode_async(&mut msg_stream).await {
+        match M::decode_async(stream).await {
             Ok(message) => {
                 let _limit = message.limit();
                 let message = Ok(Arc::new(message));
