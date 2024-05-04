@@ -25,11 +25,14 @@ use std::{
     time::UNIX_EPOCH,
 };
 
-use darkfi_serial::{async_trait, SerialDecodable, SerialEncodable};
-use log::{debug, error, info};
+use darkfi_serial::{
+    async_trait, AsyncDecodable, AsyncEncodable, SerialDecodable, SerialEncodable,
+    VarInt,
+};
+use log::{debug, error, info, trace};
 use rand::{rngs::OsRng, Rng};
 use smol::{
-    io::{self, ReadHalf, WriteHalf},
+    io::{self, AsyncRead, AsyncReadExt, AsyncWriteExt, ReadHalf, WriteHalf},
     lock::Mutex,
     Executor,
 };
@@ -40,7 +43,7 @@ use super::{
     economy::ResourceMonitor,
     hosts::HostColor,
     message,
-    message::VersionMessage,
+    message::{VersionMessage, MAGIC_BYTES},
     message_subscriber::{MessageSubscription, MessageSubsystem},
     p2p::P2pPtr,
     session::{Session, SessionBitFlag, SessionWeakPtr, SESSION_ALL, SESSION_REFINE},
@@ -220,21 +223,69 @@ impl Channel {
         Ok(())
     }
 
-    /// Implements send message functionality. Creates a new payload and
-    /// encodes it. Then creates a message packet (the base type of the
-    /// network) and copies the payload into it. Then we send the packet
-    /// over the network stream.
+    /// TODO: FIXME (doc)
     async fn send_message<M: message::Message>(&self, message: &M) -> Result<()> {
+        let mut name_buffer = Vec::<u8>::new();
+        let mut msg_buffer = Vec::<u8>::new();
+        let mut written: usize = 0;
+
+        let command = M::NAME.to_string();
+
+        assert!(!command.is_empty());
+        assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
+
         dnetev!(self, SendMessage, {
             chan: self.info.clone(),
-            cmd: M::NAME.to_string(),
+            cmd: command,
             time: NanoTimestamp::current_time(),
         });
 
         let stream = &mut *self.writer.lock().await;
-        let _ = message::send_packet2(stream, message).await?;
+
+        trace!(target: "net::channel::send_message()", "Sending magic...");
+        written += MAGIC_BYTES.encode_async(stream).await?;
+        trace!(target: "net::channel::send_message()", "Sent magic");
+
+        M::NAME.to_string().encode_async(&mut name_buffer).await?;
+
+        written += VarInt(name_buffer.len().try_into().unwrap()).encode_async(stream).await?;
+        written += M::NAME.to_string().encode_async(stream).await?;
+        trace!(target: "net::channel::send_message()", "Sent command: {}", M::NAME.to_string());
+
+        message.encode_async(&mut msg_buffer).await?;
+        written += VarInt(msg_buffer.len() as u64).encode_async(stream).await?;
+        written += message.encode_async(stream).await?;
+
+        trace!(target: "net::channel::send_message()", "Sent payload {} bytes", msg_buffer.len());
+        trace!(target: "net::channel::send_message()", "Wrote bytes {}", written);
+
+        stream.flush().await?;
 
         Ok(())
+    }
+
+    /// TODO: FIXME (doc)
+    pub async fn read_command<R: AsyncRead + Unpin + Send + Sized>(
+        &self,
+        stream: &mut R,
+    ) -> Result<String> {
+        // Messages should have a 4 byte header of magic digits.
+        // This is used for network debugging.
+        let mut magic = [0u8; 4];
+        trace!(target: "net::channel::read_command()", "Reading magic...");
+        stream.read_exact(&mut magic).await?;
+
+        trace!(target: "net::channel::read_command()", "Read magic {:?}", magic);
+        if magic != MAGIC_BYTES {
+            error!(target: "net::channel::read_command", "Error: Magic bytes mismatch");
+            return Err(Error::MalformedPacket)
+        }
+
+        let len = VarInt::decode_async(stream).await.unwrap().0;
+        let mut take = stream.take(len as u64);
+        let command = String::decode_async(&mut take).await.unwrap();
+
+        Ok(command)
     }
 
     /// Subscribe to a message on the message subsystem.
@@ -282,7 +333,7 @@ impl Channel {
 
         // Run loop
         loop {
-            let command = match message::read_command(reader).await {
+            let command = match self.read_command(reader).await {
                 Ok(command) => command,
                 Err(err) => {
                     // TODO: is out_of_bounds error

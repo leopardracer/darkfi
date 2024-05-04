@@ -17,17 +17,13 @@
  */
 
 use darkfi_serial::{
-    async_trait, serialize_async, AsyncDecodable, AsyncEncodable, SerialDecodable, SerialEncodable,
-    VarInt,
+    async_trait, AsyncDecodable, AsyncEncodable, SerialDecodable, SerialEncodable,
 };
-use log::trace;
-use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use url::Url;
 
 use super::economy::{Resource, ResourceLimit};
-use crate::{Error, Result};
 
-const MAGIC_BYTES: [u8; 4] = [0xd9, 0xef, 0xb6, 0x7d];
+pub(in crate::net) const MAGIC_BYTES: [u8; 4] = [0xd9, 0xef, 0xb6, 0x7d];
 
 /// Generic message template.
 pub trait Message: 'static + Send + Sync + AsyncDecodable + AsyncEncodable + ResourceLimit {
@@ -145,122 +141,4 @@ impl ResourceLimit for VerackMessage {
     fn limit(&self) -> Vec<(Resource, u32)> {
         vec![]
     }
-}
-
-/// Packets are the base type read from the network.
-/// Converted to messages and passed to event loop.
-#[derive(Debug, SerialEncodable, SerialDecodable)]
-pub struct Packet {
-    pub command: String,
-    pub payload: Vec<u8>,
-}
-
-/// TODO: FIXME (doc)
-///
-/// Reads and decodes an inbound payload from the given async stream.
-/// Returns decoded [`Packet`].
-/// We start by extracting the packet length from the stream, then allocate
-/// the precise buffer for this length using stream.take(). This provides
-/// a basic DDOS protection.
-pub async fn read_command<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) -> Result<String> {
-    // Packets should have a 4 byte header of magic digits.
-    // This is used for network debugging.
-    let mut magic = [0u8; 4];
-    trace!(target: "net::message", "Reading magic...");
-    stream.read_exact(&mut magic).await?;
-
-    trace!(target: "net::message", "Read magic {:?}", magic);
-    if magic != MAGIC_BYTES {
-        trace!(target: "net::message", "Error: Magic bytes mismatch");
-        return Err(Error::MalformedPacket)
-    }
-
-    let len = VarInt::decode_async(stream).await.unwrap().0;
-    let mut take = stream.take(len as u64);
-    let command = String::decode_async(&mut take).await.unwrap();
-
-    // TODO: reimplement bounds checking
-    // First deserialize the command, i.e. the type of the message.
-    //let cmd_len = VarInt::decode_async(stream).await?.0;
-    //if cmd_len > PACKET_LIMIT_LEN {
-    //    return Err(Error::PacketOutOfBounds)
-    //}
-
-    //let mut cmd_stream = stream.take(cmd_len);
-    //let mut cmd_str: Vec<u8> = Vec::new();
-    //cmd_str.try_reserve(cmd_len as usize)?;
-
-    //for _ in 0..cmd_len {
-    //    cmd_str.push(AsyncDecodable::decode_async(&mut cmd_stream).await?);
-    //}
-    //let command = String::from_utf8(cmd_str)?;
-
-    Ok(command)
-}
-
-/// TODO: FIXME (doc)
-///
-/// Sends an outbound packet by writing data to the given async stream.
-/// Returns the total written bytes.
-pub async fn send_packet2<W: AsyncWrite + Unpin + Send + Sized, M: Message>(
-    stream: &mut W,
-    message: &M,
-) -> Result<usize> {
-    // TODO: reimplement assert
-    //assert!(!packet.command.is_empty());
-    assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
-
-    let mut name_buffer = Vec::<u8>::new();
-    let mut msg_buffer = Vec::<u8>::new();
-    let mut written: usize = 0;
-
-    trace!(target: "net::message", "Sending magic...");
-    written += MAGIC_BYTES.encode_async(stream).await?;
-    trace!(target: "net::message", "Sent magic");
-
-    M::NAME.to_string().encode_async(&mut name_buffer).await.unwrap();
-
-    written += VarInt(name_buffer.len().try_into().unwrap()).encode_async(stream).await.unwrap();
-    written += M::NAME.to_string().encode_async(stream).await.unwrap();
-
-    message.encode_async(&mut msg_buffer).await.unwrap();
-    written += VarInt(msg_buffer.len().try_into().unwrap()).encode_async(stream).await.unwrap();
-    written += message.encode_async(stream).await.unwrap();
-
-    //written += M::NAME.to_string().encode_async(stream).await?;
-    //trace!(target: "net::message", "Sent command: {}", M::NAME.to_string());
-
-    //written += message.encode_async(stream).await?;
-    //trace!(target: "net::message", "Sent payload {} bytes", serialize_async(message).await.len() as u64);
-
-    stream.flush().await?;
-
-    Ok(written)
-}
-
-// TODO: modify .send_packet() so it calls .encode_async() on Message directly
-/// Sends an outbound packet by writing data to the given async stream.
-/// Returns the total written bytes.
-pub async fn send_packet<W: AsyncWrite + Unpin + Send + Sized>(
-    stream: &mut W,
-    packet: Packet,
-) -> Result<usize> {
-    assert!(!packet.command.is_empty());
-    assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
-
-    let mut written: usize = 0;
-
-    trace!(target: "net::message", "Sending magic...");
-    written += MAGIC_BYTES.encode_async(stream).await?;
-    trace!(target: "net::message", "Sent magic");
-
-    written += packet.command.encode_async(stream).await?;
-    trace!(target: "net::message", "Sent command: {}", packet.command);
-
-    written += packet.payload.encode_async(stream).await?;
-    trace!(target: "net::message", "Sent payload {} bytes", packet.payload.len() as u64);
-
-    stream.flush().await?;
-
-    Ok(written)
 }

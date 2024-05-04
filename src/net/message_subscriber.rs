@@ -23,7 +23,7 @@ use futures::stream::{FuturesUnordered, StreamExt};
 use log::{debug, error, warn};
 use rand::{rngs::OsRng, Rng};
 use smol::{
-    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    io::{AsyncReadExt},
     lock::Mutex,
 };
 
@@ -194,10 +194,10 @@ impl<M: Message> MessageDispatcherInterface for MessageDispatcher<M> {
     /// Internal function to deserialize data into a message type
     /// and dispatch it across subscriber channels.
     async fn trigger(&self, stream: &mut smol::io::ReadHalf<Box<dyn PtStream + 'static>>) {
+        // TODO: check the message does not exceed some bound.
         let len = VarInt::decode_async(stream).await.unwrap().0;
         let mut take = stream.take(len as u64);
 
-        // TODO: do msg bounds checking
         // Deserialize stream into type, send down the pipes.
         match M::decode_async(&mut take).await {
             Ok(message) => {
