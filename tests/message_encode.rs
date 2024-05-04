@@ -69,7 +69,7 @@ fn message_encode() {
         let mut buffer = Vec::<u8>::new();
         let mut written: usize = 0;
 
-        let testmsg = TestMsg { payload: vec!["Example".to_string(), "Example".to_string()] };
+        let testmsg = TestMsg { payload: vec![] };
 
         written += testmsg.encode_async(&mut buffer).await.unwrap();
         println!("Wrote bytes: {}", written);
@@ -83,7 +83,6 @@ fn message_encode() {
         println!("Got length: {}", len);
         println!("==================================================");
         let mut take = cursor.take(len as u64);
-        println!("==================================================");
         println!("Decoding Message...");
         println!("==================================================");
         let payload = TestMsg::decode_async(&mut take).await.unwrap();
