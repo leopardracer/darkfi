@@ -18,6 +18,7 @@
 
 use darkfi_serial::{
     async_trait, serialize_async, AsyncDecodable, AsyncEncodable, SerialDecodable, SerialEncodable,
+    VarInt,
 };
 use log::trace;
 use smol::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
@@ -174,7 +175,9 @@ pub async fn read_command<R: AsyncRead + Unpin + Send + Sized>(stream: &mut R) -
         return Err(Error::MalformedPacket)
     }
 
-    let command = String::decode_async(stream).await?;
+    let len = VarInt::decode_async(stream).await.unwrap().0;
+    let mut take = stream.take(len as u64);
+    let command = String::decode_async(&mut take).await.unwrap();
 
     // TODO: reimplement bounds checking
     // First deserialize the command, i.e. the type of the message.
@@ -207,17 +210,28 @@ pub async fn send_packet2<W: AsyncWrite + Unpin + Send + Sized, M: Message>(
     //assert!(!packet.command.is_empty());
     assert!(std::mem::size_of::<usize>() <= std::mem::size_of::<u64>());
 
+    let mut name_buffer = Vec::<u8>::new();
+    let mut msg_buffer = Vec::<u8>::new();
     let mut written: usize = 0;
 
     trace!(target: "net::message", "Sending magic...");
     written += MAGIC_BYTES.encode_async(stream).await?;
     trace!(target: "net::message", "Sent magic");
 
-    written += M::NAME.to_string().encode_async(stream).await?;
-    trace!(target: "net::message", "Sent command: {}", M::NAME.to_string());
+    M::NAME.to_string().encode_async(&mut name_buffer).await.unwrap();
 
-    written += message.encode_async(stream).await?;
-    trace!(target: "net::message", "Sent payload {} bytes", serialize_async(message).await.len() as u64);
+    written += VarInt(name_buffer.len().try_into().unwrap()).encode_async(stream).await.unwrap();
+    written += M::NAME.to_string().encode_async(stream).await.unwrap();
+
+    message.encode_async(&mut msg_buffer).await.unwrap();
+    written += VarInt(msg_buffer.len().try_into().unwrap()).encode_async(stream).await.unwrap();
+    written += message.encode_async(stream).await.unwrap();
+
+    //written += M::NAME.to_string().encode_async(stream).await?;
+    //trace!(target: "net::message", "Sent command: {}", M::NAME.to_string());
+
+    //written += message.encode_async(stream).await?;
+    //trace!(target: "net::message", "Sent payload {} bytes", serialize_async(message).await.len() as u64);
 
     stream.flush().await?;
 
