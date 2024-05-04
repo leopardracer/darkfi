@@ -426,6 +426,7 @@ impl AsyncEncodable for VarInt {
 impl AsyncDecodable for VarInt {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::VarInt::decode_async()");
         let n = AsyncReadExt::read_u8_async(d).await?;
         match n {
             0xFF => {
@@ -471,6 +472,7 @@ impl AsyncEncodable for usize {
 impl AsyncDecodable for usize {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::usize::decode_async()");
         Ok(AsyncReadExt::read_u64_async(d).await? as usize)
     }
 }
@@ -488,6 +490,7 @@ impl AsyncEncodable for f64 {
 impl AsyncDecodable for f64 {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::f64::decode_async()");
         AsyncReadExt::read_f64_async(d).await
     }
 }
@@ -505,6 +508,7 @@ impl AsyncEncodable for f32 {
 impl AsyncDecodable for f32 {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::f32::decode_async()");
         AsyncReadExt::read_f32_async(d).await
     }
 }
@@ -522,6 +526,7 @@ impl AsyncEncodable for bool {
 impl AsyncDecodable for bool {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::bool::decode_async()");
         AsyncReadExt::read_bool_async(d).await
     }
 }
@@ -543,6 +548,7 @@ impl<T: AsyncEncodable + Sync> AsyncEncodable for Vec<T> {
 impl<T: AsyncDecodable + Send> AsyncDecodable for Vec<T> {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::Vec<T>::decode_async()");
         let len = VarInt::decode_async(d).await?.0;
         let mut ret = Vec::new();
         ret.try_reserve(len as usize).map_err(|_| std::io::ErrorKind::InvalidData)?;
@@ -570,6 +576,7 @@ impl<T: AsyncEncodable + Sync> AsyncEncodable for VecDeque<T> {
 impl<T: AsyncDecodable + Send> AsyncDecodable for VecDeque<T> {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::VecDecque<T>::decode_async()");
         let len = VarInt::decode_async(d).await?.0;
         let mut ret = VecDeque::new();
         ret.try_reserve(len as usize).map_err(|_| std::io::ErrorKind::InvalidData)?;
@@ -597,6 +604,7 @@ impl<T: AsyncEncodable + Sync> AsyncEncodable for Option<T> {
 #[async_trait]
 impl<T: AsyncDecodable> AsyncDecodable for Option<T> {
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::Option<T>::decode_async()");
         let valid: bool = AsyncDecodable::decode_async(d).await?;
         let val = if valid { Some(AsyncDecodable::decode_async(d).await?) } else { None };
         Ok(val)
@@ -626,6 +634,7 @@ where
 {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<Self> {
+        println!("async_lib::[T; N]::decode_async()");
         let mut ret = vec![];
         for _ in 0..N {
             ret.push(AsyncDecodable::decode_async(d).await?);
@@ -663,6 +672,7 @@ impl AsyncEncodable for &str {
 impl AsyncDecodable for String {
     #[inline]
     async fn decode_async<D: AsyncRead + Unpin + Send>(d: &mut D) -> Result<String> {
+        println!("async_lib::String::decode_async()");
         match String::from_utf8(AsyncDecodable::decode_async(d).await?) {
             Ok(v) => Ok(v),
             Err(_) => Err(Error::new(ErrorKind::Other, "Invalid UTF-8 for string")),
