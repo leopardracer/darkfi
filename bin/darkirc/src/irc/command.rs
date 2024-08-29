@@ -850,13 +850,13 @@ impl Client {
             ))])
         };
 
-        if !realname.starts_with(':') {
-            self.penalty.fetch_add(1, SeqCst);
-            return Ok(vec![ReplyType::Server((
-                ERR_NEEDMOREPARAMS,
-                format!("{} USER :{}", nick, INVALID_SYNTAX),
-            ))])
-        }
+        // if !realname.starts_with(':') {
+        //     self.penalty.fetch_add(1, SeqCst);
+        //     return Ok(vec![ReplyType::Server((
+        //         ERR_NEEDMOREPARAMS,
+        //         format!("{} USER :{}", nick, INVALID_SYNTAX),
+        //     ))])
+        // }
 
         *self.username.write().await = username.to_string();
         *self.realname.write().await = realname.to_string();
