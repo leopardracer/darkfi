@@ -25,11 +25,14 @@ use futures::{stream::FuturesUnordered, TryFutureExt};
 use futures_rustls::rustls::crypto::{ring, CryptoProvider};
 use log::{debug, error, info, warn};
 use smol::{
-    fs::{self, unix::PermissionsExt},
+    fs,
     lock::RwLock as AsyncRwLock,
     stream::StreamExt,
 };
 use url::Url;
+
+#[cfg(not(target_os = "windows"))]
+use smol::fs::unix::PermissionsExt;
 
 use super::{
     channel::ChannelPtr,
@@ -92,6 +95,8 @@ impl P2p {
         if let Some(ref datastore) = settings.p2p_datastore {
             let datastore = expand_path(datastore)?;
             fs::create_dir_all(&datastore).await?;
+            // Windows only has readonly so don't worry about it
+            #[cfg(not(target_os = "windows"))]
             fs::set_permissions(&datastore, PermissionsExt::from_mode(0o700)).await?;
         }
 

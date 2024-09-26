@@ -56,7 +56,8 @@ use crate::{
 
 #[cfg(target_os = "android")]
 const EVGRDB_PATH: &str = "/data/data/darkfi.darkwallet/evgr/";
-#[cfg(target_os = "linux")]
+
+#[cfg(any(target_os = "linux", target_os = "macos", target_os = "windows"))]
 const EVGRDB_PATH: &str = "~/.local/darkfi/darkwallet/evgr/";
 
 //const ENDPOINT: &str = "tcp://agorism.dev:25588";

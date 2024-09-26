@@ -63,6 +63,10 @@ tor-dirmgr = {version="0.21.0", features=["static"]}
 [target.'cfg(target_os = "linux")'.dependencies]
 simplelog = "0.12.1"
 
+[target.'cfg(target_os = "windows")'.dependencies]
+# Used by tor-dirmgr
+rusqlite = {version = "0.31", features = ["bundled"]}
+
 [package.metadata.android.activity_attributes]
 "android:exported" = "true"
 "android:windowSoftInputMode" = "adjustResize"

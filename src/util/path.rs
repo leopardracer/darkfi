@@ -20,15 +20,18 @@ use std::{
     env,
     ffi::{CStr, OsString},
     fs, mem,
-    os::unix::prelude::OsStringExt,
     path::{Path, PathBuf},
     ptr,
 };
+
+#[cfg(not(target_os = "windows"))]
+use std::os::unix::prelude::OsStringExt;
 
 use crate::{Error, Result};
 
 /// Returns the path to the user's home directory.
 /// Use `$HOME`, fallbacks to `libc::getpwuid_r`, otherwise `None`.
+#[cfg(not(target_os = "windows"))]
 pub fn home_dir() -> Option<PathBuf> {
     env::var_os("HOME")
         .and_then(|h| if h.is_empty() { None } else { Some(h) })
@@ -36,8 +39,14 @@ pub fn home_dir() -> Option<PathBuf> {
         .map(PathBuf::from)
 }
 
+#[cfg(target_os = "windows")]
+pub fn home_dir() -> Option<PathBuf> {
+    std::env::var_os("APPDATA").map(PathBuf::from)
+}
+
 /// Get the home directory from the passwd entry of the current user using
 /// `getpwuid_r(3)`. If it manages, returns an `OsString`, otherwise returns `None`.
+#[cfg(not(target_os = "windows"))]
 unsafe fn home_fallback() -> Option<OsString> {
     let amt = match libc::sysconf(libc::_SC_GETPW_R_SIZE_MAX) {
         n if n < 0 => 512_usize,
