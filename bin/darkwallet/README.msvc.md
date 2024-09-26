@@ -7,7 +7,7 @@ You will need:
 * Download the Windows 10 ISO from their website.
 * Download virtio windows ISO
 
-Then create a new image and a raw disk of 100 Gb.
+Then create a new image and a raw disk of 80 Gb.
 See the [Arch QEMU guide](https://wiki.archlinux.org/title/QEMU).
 
 Use this script to run the VM:
