@@ -24,11 +24,7 @@ use std::sync::{
 use futures::{stream::FuturesUnordered, TryFutureExt};
 use futures_rustls::rustls::crypto::{ring, CryptoProvider};
 use log::{debug, error, info, warn};
-use smol::{
-    fs,
-    lock::RwLock as AsyncRwLock,
-    stream::StreamExt,
-};
+use smol::{fs, lock::RwLock as AsyncRwLock, stream::StreamExt};
 use url::Url;
 
 #[cfg(not(target_os = "windows"))]

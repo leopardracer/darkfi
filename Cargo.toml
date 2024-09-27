@@ -270,7 +270,7 @@ wasm-runtime = [
     "wasmer-compiler-singlepass",
     "wasmer-middlewares",
 
-    "darkfi-sdk",
+    "darkfi-sdk/wasm",
 
     "blockchain",
 ]
