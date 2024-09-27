@@ -34,15 +34,6 @@ use url::Url;
 
 use super::{PtListener, PtStream};
 
-fn enable_reuse_port(socket: &Socket) -> io::Result<()> {
-    #[cfg(not(target_os = "windows"))]
-    socket.set_reuse_port(true)?;
-    // On Windows SO_REUSEPORT means the same thing as SO_REUSEADDR
-    #[cfg(target_os = "windows")]
-    socket.set_reuse_address(true)?;
-    Ok(())
-}
-
 /// TCP Dialer implementation
 #[derive(Debug, Clone)]
 pub struct TcpDialer {
@@ -72,7 +63,12 @@ impl TcpDialer {
         socket.set_nodelay(true)?;
         let keepalive = TcpKeepalive::new().with_time(Duration::from_secs(20));
         socket.set_tcp_keepalive(&keepalive)?;
-        enable_reuse_port(&socket)?;
+
+        #[cfg(not(target_os = "windows"))]
+        socket.set_reuse_port(true)?;
+        // On Windows SO_REUSEPORT means the same thing as SO_REUSEADDR
+        #[cfg(target_os = "windows")]
+        socket.set_reuse_address(true)?;
 
         Ok(socket)
     }
@@ -156,7 +152,12 @@ impl TcpListener {
         socket.set_nodelay(true)?;
         let keepalive = TcpKeepalive::new().with_time(Duration::from_secs(20));
         socket.set_tcp_keepalive(&keepalive)?;
-        enable_reuse_port(&socket)?;
+
+        #[cfg(not(target_os = "windows"))]
+        socket.set_reuse_port(true)?;
+        // On Windows SO_REUSEPORT means the same thing as SO_REUSEADDR
+        #[cfg(target_os = "windows")]
+        socket.set_reuse_address(true)?;
 
         Ok(socket)
     }

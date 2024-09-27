@@ -16,10 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-use std::{
-    io::{self, ErrorKind},
-    time::Duration,
-};
+use std::{io, time::Duration};
 
 use async_trait::async_trait;
 use log::error;
@@ -105,6 +102,7 @@ pub struct Dialer {
     variant: DialerVariant,
 }
 
+#[allow(unused_macros)]
 macro_rules! enforce_hostport {
     ($endpoint:ident) => {
         if $endpoint.host_str().is_none() || $endpoint.port().is_none() {
@@ -113,6 +111,7 @@ macro_rules! enforce_hostport {
     };
 }
 
+#[allow(unused_macros)]
 macro_rules! enforce_abspath {
     ($endpoint:ident) => {
         if $endpoint.host_str().is_some() || $endpoint.port().is_some() {
@@ -256,7 +255,9 @@ impl Dialer {
             DialerVariant::Unix(dialer) => {
                 let path = match self.endpoint.to_file_path() {
                     Ok(v) => v,
-                    Err(_) => return Err(io::Error::new(ErrorKind::Unsupported, "Invalid path")),
+                    Err(_) => {
+                        return Err(io::Error::new(io::ErrorKind::Unsupported, "Invalid path"))
+                    }
                 };
                 let stream = dialer.do_dial(path).await?;
                 Ok(Box::new(stream))
@@ -364,7 +365,9 @@ impl Listener {
             ListenerVariant::Unix(listener) => {
                 let path = match self.endpoint.to_file_path() {
                     Ok(v) => v,
-                    Err(_) => return Err(io::Error::new(ErrorKind::Unsupported, "Invalid path")),
+                    Err(_) => {
+                        return Err(io::Error::new(io::ErrorKind::Unsupported, "Invalid path"))
+                    }
                 };
                 let l = listener.do_listen(&path).await?;
                 Ok(Box::new(l))

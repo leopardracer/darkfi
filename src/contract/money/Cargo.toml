@@ -11,7 +11,7 @@ crate-type = ["cdylib", "rlib"]
 [dependencies]
 blake3 = "1.5.4"
 bs58 = "0.5.1"
-darkfi-sdk = { path = "../../sdk" }
+darkfi-sdk = { path = "../../sdk", features = ["wasm"] }
 darkfi-serial = { path = "../../serial", features = ["derive", "crypto"] }
 thiserror = "1.0.63"
 
@@ -35,7 +35,6 @@ darkfi-contract-test-harness = {path = "../test-harness"}
 # so the wasm32-unknown-unknown target is enabled.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2.8", features = ["custom"] }
-darkfi-sdk = { path = "../../sdk", features = ["wasm"] }
 
 [features]
 default = []

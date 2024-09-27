@@ -9,7 +9,7 @@ edition = "2021"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-darkfi-sdk = { path = "../../sdk" }
+darkfi-sdk = { path = "../../sdk", features = ["wasm"] }
 darkfi-serial = { path = "../../serial", features = ["derive", "crypto"] }
 thiserror = "1.0.63"
 wasmparser = "0.216.0"
@@ -29,7 +29,6 @@ smol = "2.0.1"
 # so the wasm32-unknown-unknown target is enabled.
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 getrandom = { version = "0.2.8", features = ["custom"] }
-darkfi-sdk = { path = "../../sdk", features = ["wasm"] }
 
 [features]
 default = []

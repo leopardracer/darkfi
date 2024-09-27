@@ -31,17 +31,16 @@ use crate::{Error, Result};
 
 /// Returns the path to the user's home directory.
 /// Use `$HOME`, fallbacks to `libc::getpwuid_r`, otherwise `None`.
-#[cfg(not(target_os = "windows"))]
 pub fn home_dir() -> Option<PathBuf> {
-    env::var_os("HOME")
+    #[cfg(not(target_os = "windows"))]
+    const HOME_ENV: &str = "HOME";
+    #[cfg(target_os = "windows")]
+    const HOME_ENV: &str = "APPDATA";
+
+    env::var_os(HOME_ENV)
         .and_then(|h| if h.is_empty() { None } else { Some(h) })
         .or_else(|| unsafe { home_fallback() })
         .map(PathBuf::from)
-}
-
-#[cfg(target_os = "windows")]
-pub fn home_dir() -> Option<PathBuf> {
-    std::env::var_os("APPDATA").map(PathBuf::from)
 }
 
 /// Get the home directory from the passwd entry of the current user using
